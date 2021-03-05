@@ -34,8 +34,7 @@ def data_uri_to_cv2_img(uri):
 
     encoded_data = uri.split(',')[1]
     nparr = np.fromstring(base64.b64decode(encoded_data), np.uint8)
-    img = cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
-    return img
+    return cv2.imdecode(nparr, cv2.IMREAD_GRAYSCALE)
 
 def transform_image(image_str):
     my_transforms = transforms.Compose([
@@ -81,10 +80,12 @@ def get_prediction(image_str):
     tensor = transform_image(image_str=image_str)
     out = pretrained_model(tensor).detach().squeeze(0)
     pil_out = transforms.ToPILImage()(out)
-    
-    predictions = np.array(nn.Sigmoid()(model(TVF.to_tensor(pil_out.convert('RGB')).unsqueeze(0))).detach().squeeze(0))
-    
-    return predictions
+
+    return np.array(
+        nn.Sigmoid()(model(TVF.to_tensor(pil_out.convert('RGB')).unsqueeze(0)))
+        .detach()
+        .squeeze(0)
+    )
 
 @app.route('/')
 def render_page():
@@ -98,9 +99,10 @@ def predict():
 
         # img_bytes = file.read()
         predictions = get_prediction(imgstring)
-        final_output = {}
-        for index, pred in enumerate(predictions):
-            final_output[index+1] = (feature_map[index+1], pred.item())
+        final_output = {
+            index + 1: (feature_map[index + 1], pred.item())
+            for index, pred in enumerate(predictions)
+        }
 
     response = jsonify(final_output)
     response.headers.add('Access-Control-Allow-Origin', '*')
